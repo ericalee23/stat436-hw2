@@ -1,0 +1,68 @@
+
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warnings = FALSE, message = FALSE)
+```
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(shiny)
+library(plotly)
+```
+
+```{r}
+men_champs <- read_csv("https://go.wisc.edu/ggj39i")
+```
+
+```{r}
+descriptive_text <- p("Explore program scores from the Men's discipline of the World Figure Skating Championships from 2005-2022! There is no data for the year 2020 due to the COVID-19 pandemic. There are two plots to represent the two programs, short and freeskate, competed in the Championships. The x axis and y axis represent the two scores that build the total score, which are the Technical Element and Program Component (Artistry) Score. The plots also feature data on the number of quadruple jumps, the hardest jumps a skater can do, showing its evolution over the years and impact on scores. The maximum quadruple jumps possible for the short program is 2, and for the freeskate the maximum is 7. Select skaters from the dropdown menu to begin. Drag the slider to your desired range of years. Enjoy!")
+```
+
+
+```{r}
+ui <- fluidPage(
+  titlePanel(title = "Men's Figure Skating World Championships Scores from 2005 to 2022"),
+  descriptive_text,
+  selectInput("skater", "Skater Name", unique(men_champs$Skater), multiple = TRUE),
+  sliderInput("year", "Year", 2005, 2022, c(2005, 2022), sep=""),
+    fluidRow(
+      column(6, plotlyOutput("sp_plot", width = "600px", height = "500px")),
+      column(6, plotlyOutput("fs_plot", width = "600px", height = "500px"))
+    )
+  )
+
+
+server <- function(input, output) {
+  output$fs_plot <- renderPlotly({
+    men_champs |>
+      filter(
+        Skater %in% input$skater,
+        Year >= input$year[1] & Year <= input$year[2]
+        ) |>
+      plot_ly(x = ~`FS TES`, y = ~`FS PC`, type="scatter", mode="markers",
+              marker=list(
+                size=10, colorbar=list(title="# of Quads"), color=~`Quads in FS`, 
+                colorscale = list(c(0, 1), c("#FFD7F4", "#1F27FF")), 
+                showscale = TRUE, line=list(color="lightgrey",width=2,opacity=.7)),
+              hovertext= ~paste("Year:",Year,"<br> Skater:",Skater,"<br> Quads:",`Quads in FS`)) |>
+      layout(title="Freeskate Scores", xaxis=list(title="Technnical Element Score"), yaxis=list(title="Program Component Score"))
+  })
+  
+  output$sp_plot <- renderPlotly({
+    men_champs |>
+      filter(
+        Skater %in% input$skater,
+        Year >= input$year[1] & Year <= input$year[2]) |>
+      plot_ly(x = ~`SP TES`, y = ~`SP PC`, type="scatter", mode="markers", 
+              marker=list(
+                size=10, colorbar=list(title="# of Quads"), color=~`Quads in SP`, 
+                colorscale = list(c(0, 1), c("#FFD7F4", "#1F27FF")), 
+                showscale = TRUE, line=list(color="lightgrey",width=2,opacity=.7)) ,
+             hovertext= ~paste("Year:",Year,"<br> Skater:",Skater,"<br> Quads:",`Quads in SP`)) |>
+      layout(title="Short Program Scores", xaxis=list(title="Technnical Element Score"), yaxis=list(title="Program Component Score"))
+  })
+}
+
+shinyApp(ui, server)
+```
+
